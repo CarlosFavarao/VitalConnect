@@ -32,24 +32,11 @@ public interface BedRepository extends JpaRepository<BedModel, Long> {
     @Query("SELECT b FROM BedModel b WHERE b.room.ward.hospital.id = :hospitalId")
     List<BedModel> findBedsByHospitalId(@Param("hospitalId") Long hospitalId);
 
-    //Mostra camas disponíveis
-    @Query(nativeQuery = true, value =
-            "select " +
-                    "h.id as hospitalId, " +
-                    "h.name as hospitalName, " +
-                    "w.specialty as specialty, " +
-                    "b.id as bedId, " +
-                    "b.code as bedCode, " +
-                    "b.status as bedStatus, " +
-                    "r.id as roomId, " +
-                    "r.code as roomCode " +
-                    "from beds b " +
-                    "join rooms r on b.room_id = r.id " +
-                    "join wards w on r.ward_id = w.id " +
-                    "join hospitals h on w.hospital_id = h.id " +
-                    "where b.status = 'AVAILABLE' " +
-                    "order by w.specialty;")
-    Page<AvailableBedProjection> findAvailableBeds(Pageable pageable);
+    @Query("SELECT b FROM BedModel b " +
+            "JOIN FETCH b.room r " +
+            "JOIN FETCH r.ward w " +
+            "JOIN FETCH w.hospital h ")
+    List<BedModel> findAllBeds();
 
     @Query(nativeQuery = true, value =
     "select " +

@@ -1,6 +1,6 @@
 package br.com.ControleDePacientes.service;
 
-import br.com.ControleDePacientes.dto.AvailableBedDTO;
+import br.com.ControleDePacientes.dto.BedDTO;
 import br.com.ControleDePacientes.dto.BedResponseDTO;
 import br.com.ControleDePacientes.enums.SpecialtyEnum;
 import br.com.ControleDePacientes.model.BedModel;
@@ -26,13 +26,28 @@ public class BedService {
     }
 
     @Transactional(readOnly = true)
-    public List<BedResponseDTO> findAllBeds(){
-        return this.bedRepository.findAll().stream().map(BedResponseDTO::new).collect(Collectors.toList());
+    public BedModel findById(Long id){
+        return this.bedRepository.findById(id).orElseThrow(() -> new RuntimeException("Cama não encontrada."));
     }
 
     @Transactional(readOnly = true)
-    public BedModel findById(Long id){
-        return this.bedRepository.findById(id).orElseThrow(() -> new RuntimeException("Cama não encontrada."));
+    public Map<String, List<BedDTO>> findAllBeds() {
+        List<BedModel> beds = bedRepository.findAllBeds();
+
+        Map<String, List<BedDTO>> groupedByHospital = new TreeMap<>();
+
+        for (BedModel bed : beds) {
+            BedDTO dto = BedDTO.fromEntity(bed);
+            groupedByHospital.computeIfAbsent(dto.getHospitalName(), k -> new ArrayList<>()).add(dto);
+        }
+
+        for (List<BedDTO> bedList : groupedByHospital.values()) {
+            bedList.sort(Comparator.comparing(BedDTO::getSpecialty)
+                    .thenComparing(BedDTO::getRoomCode)
+                    .thenComparing(BedDTO::getBedCode));
+        }
+
+        return groupedByHospital;
     }
 
     @Transactional(readOnly = true)
@@ -41,18 +56,18 @@ public class BedService {
     }
 
     @Transactional(readOnly = true)
-    public Map<SpecialtyEnum, List<AvailableBedDTO>> findAvailableBedsByHospital(Long hospitalId) {
+    public Map<SpecialtyEnum, List<BedDTO>> findAvailableBedsByHospital(Long hospitalId) {
         List<AvailableBedProjection> projections = bedRepository.findAvailableBedsByHospital(hospitalId);
 
-        Map<SpecialtyEnum, List<AvailableBedDTO>> groupedBeds = new TreeMap<>();
+        Map<SpecialtyEnum, List<BedDTO>> groupedBeds = new TreeMap<>();
 
         for (AvailableBedProjection projection : projections) {
-            AvailableBedDTO dto = AvailableBedDTO.fromProjection(projection);
+            BedDTO dto = BedDTO.fromProjection(projection);
             groupedBeds.computeIfAbsent(dto.getSpecialty(), k -> new ArrayList<>()).add(dto);
         }
 
-        for (List<AvailableBedDTO> bedList : groupedBeds.values()) {
-            bedList.sort(Comparator.comparing(AvailableBedDTO::getRoomCode).thenComparing(AvailableBedDTO::getBedCode));
+        for (List<BedDTO> bedList : groupedBeds.values()) {
+            bedList.sort(Comparator.comparing(BedDTO::getRoomCode).thenComparing(BedDTO::getBedCode));
         }
 
         return groupedBeds;
@@ -65,17 +80,11 @@ public class BedService {
         return beds.stream().map(BedResponseDTO::new).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public Page<AvailableBedDTO> findAvailableBeds(Pageable pageable){
-        Page<AvailableBedProjection> projectionPage = this.bedRepository.findAvailableBeds(pageable);
-
-        return projectionPage.map(AvailableBedDTO::fromProjection);
-    }
 
     @Transactional(readOnly = true)
-    public Page<AvailableBedDTO> findAvailableBedsByHospitalIdAndSpecialty(Long hospitalId, String specialtyName, Pageable pageable){
+    public Page<BedDTO> findAvailableBedsByHospitalIdAndSpecialty(Long hospitalId, String specialtyName, Pageable pageable){
         Page<AvailableBedProjection> projectionPage = this.bedRepository.findAvailableBedsByHospitalIdAndSpecialty(hospitalId, specialtyName, pageable);
 
-        return projectionPage.map(AvailableBedDTO::fromProjection);
+        return projectionPage.map(BedDTO::fromProjection);
     }
 }

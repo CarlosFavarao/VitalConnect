@@ -11,4 +11,5 @@ public interface AvailableBedProjection {
     String getBedCode();
     Long getRoomId();
     String getRoomCode();
+    String getBedStatus();
 }
