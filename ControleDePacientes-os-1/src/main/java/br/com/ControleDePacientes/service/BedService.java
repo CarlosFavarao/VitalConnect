@@ -41,12 +41,6 @@ public class BedService {
             groupedByHospital.computeIfAbsent(dto.getHospitalName(), k -> new ArrayList<>()).add(dto);
         }
 
-        for (List<BedDTO> bedList : groupedByHospital.values()) {
-            bedList.sort(Comparator.comparing(BedDTO::getSpecialty)
-                    .thenComparing(BedDTO::getRoomCode)
-                    .thenComparing(BedDTO::getBedCode));
-        }
-
         return groupedByHospital;
     }
 
